@@ -10,14 +10,17 @@ TOKEN_TYPES = {
     'INT_KEYWORD': r'\bint\b',
     'RETURN_KEYWORD': r'\breturn\b',
     'IDENTIFIER': r'\b[a-zA-Z_][a-zA-Z0-9_]*\b',
-    'STRING_LITERAL': r'"[^"]*"',  # NEW: String literals like "Hello World"
+    'STRING_LITERAL': r'"[^"]*"',
     'NUMBER': r'\b\d+\b',
+    'PLUS': r'\+',        
+    'MINUS': r'-',        
+    'EQUALS': r'=',       
     'LPAREN': r'\(',
     'RPAREN': r'\)',
     'LBRACE': r'{',
     'RBRACE': r'}',
     'SEMICOLON': r';',
-    'COMMA': r',',  # NEW: For multiple function arguments
+    'COMMA': r',',
     'WHITESPACE': r'\s+',
     'UNKNOWN': r'.',
 }
@@ -232,3 +235,4 @@ output_box.pack(padx=10, pady=(0, 10))
 
 # Start the GUI event loop
 root.mainloop()
+
