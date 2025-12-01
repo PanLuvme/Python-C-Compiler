@@ -167,72 +167,109 @@ def syntax_analyzer(tokens: list[tuple[str, str]]) -> bool:
 
 
 # ========================
-# GUI code
+# GUI code (the "window")
 # ========================
 
 def run_compiler():
     # Get code from the text box
     code = code_input.get("1.0", tk.END)
-    
+
     # Clear previous output
     output_box.delete("1.0", tk.END)
-    
+
     # Run lexical analyzer
-    tokens, lexical_error = lexical_analyzer(code)
-    
+    tokens = lexical_analyzer(code)
+
     # Show tokens in the output box
     output_box.insert(tk.END, "Tokens:\n")
     for token_type, token_value in tokens:
         output_box.insert(tk.END, f"{token_type}: {token_value}\n")
-    
-    # Check for lexical errors first
-    if lexical_error:
-        output_box.insert(tk.END, "\n COMPILATION FAILED \n")
-        output_box.insert(tk.END, "Lexical errors detected. Cannot proceed to syntax analysis.\n")
-        messagebox.showerror("Compiler", "Compilation Failed!\nLexical errors found.")
-        return  # Stop here - do not compile
-    
-    output_box.insert(tk.END, "\nLexical Analysis: PASSED\n")
-    
-    # Run syntax analyzer only if no lexical errors
-    ok = syntax_analyzer(tokens)
-    output_box.insert(tk.END, "\nSyntax Result:\n")
-    
-    if ok:
-        output_box.insert(tk.END, "Syntax Analysis: PASSED\n")
-        output_box.insert(tk.END, "\n COMPILATION SUCCESSFUL! \n")
-        messagebox.showinfo("Compiler", "Compilation Successful!\nCode is valid.")
-    else:
-        output_box.insert(tk.END, "Syntax Analysis: FAILED\n")
-        output_box.insert(tk.END, "\n COMPILATION FAILED \n")
-        messagebox.showerror("Compiler", "Compilation Failed!\nSyntax errors found.")
 
+    # Run syntax analyzer
+    ok = syntax_analyzer(tokens)
+
+    output_box.insert(tk.END, "\nSyntax Result:\n")
+    if ok:
+        output_box.insert(tk.END, "Syntax Analysis Successful! ✅\n")
+        messagebox.showinfo("Compiler", "Syntax Analysis Successful!")
+    else:
+        output_box.insert(tk.END, "Syntax Analysis Failed. ❌\n(See console for details.)\n")
+        messagebox.showerror("Compiler", "Syntax Analysis Failed.\nCheck console for details.")
 
 # Create main window
 root = tk.Tk()
 root.title("Mini Compiler")
+root.geometry('1000x680')
+root.minsize(760, 520)
 
-# Code input label + text box
-label_input = tk.Label(root, text="Source Code:")
-label_input.pack(anchor="w", padx=10, pady=(10, 0))
+# Use a modern ttk theme and define some simple colors for a dark editor style
+style = ttk.Style(root)
+try:
+    style.theme_use('clam')
+except Exception:
+    pass
 
-code_input = scrolledtext.ScrolledText(root, width=80, height=15)
-code_input.pack(padx=10, pady=5)
+# Fonts
+mono_font = font.Font(family='Consolas' if 'Consolas' in font.families() else 'Courier', size=11)
+heading_font = font.Font(family='Playfair', size=14) if 'Playfair' in font.families() else font.Font(size=13, weight='bold')
 
-# Put a default example in the box
-code_input.insert(tk.END, 'int main()\n{\n    printf("Hello World");\n    return 0;\n}')
+# Main layout frame
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
 
-# Run button
-run_button = tk.Button(root, text="Run Compiler", command=run_compiler)
-run_button.pack(pady=5)
+main = ttk.Frame(root, padding=(14, 12, 14, 12))
+main.grid(row=0, column=0, sticky='nsew')
+main.columnconfigure(0, weight=1)
+main.columnconfigure(1, weight=1)
+main.rowconfigure(0, weight=1)
 
-# Output label + text box
-label_output = tk.Label(root, text="Output:")
-label_output.pack(anchor="w", padx=10, pady=(10, 0))
+# Left column: Source code
+left = ttk.Frame(main)
+left.grid(row=0, column=0, sticky='nsew', padx=(0, 8), pady=(0, 10))
+left.columnconfigure(0, weight=1)
+left.rowconfigure(1, weight=1)
 
-output_box = scrolledtext.ScrolledText(root, width=80, height=15, state="normal")
-output_box.pack(padx=10, pady=(0, 10))
+lbl_src = ttk.Label(left, text='Source Code', font=heading_font)
+lbl_src.grid(row=0, column=0, sticky='w')
+
+code_input = scrolledtext.ScrolledText(left, wrap=tk.NONE, font=mono_font, width=60, height=18)
+code_input.grid(row=1, column=0, sticky='nsew', pady=(6, 0))
+code_input.configure(background='#0b1220', foreground='#e6eef6', insertbackground='#e6eef6', relief='flat', borderwidth=0)
+
+code_input.insert(tk.END, 'int main() { return 0; }')
+
+# Right column: Output / tokens
+right = ttk.Frame(main)
+right.grid(row=0, column=1, sticky='nsew', padx=(8, 0), pady=(0, 10))
+right.columnconfigure(0, weight=1)
+right.rowconfigure(1, weight=1)
+
+lbl_out = ttk.Label(right, text='Output', font=heading_font)
+lbl_out.grid(row=0, column=0, sticky='w')
+
+output_box = scrolledtext.ScrolledText(right, wrap=tk.WORD, font=mono_font, width=60, height=18, state='normal')
+output_box.grid(row=1, column=0, sticky='nsew', pady=(6, 0))
+output_box.configure(background='#0b1220', foreground='#e6eef6', insertbackground='#e6eef6', relief='flat', borderwidth=0)
+
+# Bottom controls
+controls = ttk.Frame(main)
+controls.grid(row=1, column=0, columnspan=2, sticky='ew')
+controls.columnconfigure(0, weight=1)
+controls.columnconfigure(1, weight=0)
+
+# Add a run button on the right and a small status label on the left
+status_label = ttk.Label(controls, text='Ready', anchor='w')
+status_label.grid(row=0, column=0, sticky='ew', padx=(2, 8), pady=(10, 0))
+
+run_button = ttk.Button(controls, text='Run Compiler', command=run_compiler)
+run_button.grid(row=0, column=1, sticky='e', padx=(8, 0), pady=(10, 0))
+
+# Keyboard shortcut: Ctrl+Return to run
+root.bind('<Control-Return>', lambda e: run_compiler())
+
+# Make the UI resize nicely
+for w in (code_input, output_box):
+    w.configure(font=mono_font)
 
 # Start the GUI event loop
 root.mainloop()
-
