@@ -198,6 +198,84 @@ def syntax_analyzer(tokens: list[tuple[str, str]]) -> bool:
         print(f"Syntax Analysis Failed: {e}")
         return False
 
+def evaluate(tokens: list[tuple[str, str]]) -> str:
+    """Simple interpreter: evaluates variable declarations, assignments,
+    and printf() calls with numeric or string expressions."""
+    
+    symbols = {}    # variable storage
+    output = []     # printed output lines
+    
+    # Simple expression evaluator (handles + and - only)
+    def eval_expression(i):
+        """Evaluate NUMBER or IDENTIFIER with + or -."""
+        def get_value(tok):
+            ttype, tval = tok
+            if ttype == "NUMBER":
+                return int(tval)
+            if ttype == "STRING_LITERAL":
+                return tval.strip('"')
+            if ttype == "IDENTIFIER":
+                return symbols.get(tval, 0)
+            raise ValueError("Bad expression")
+        
+        value = get_value(tokens[i])
+        i += 1
+        
+        while i < len(tokens) and tokens[i][0] in ("PLUS", "MINUS"):
+            op = tokens[i][0]
+            right = get_value(tokens[i+1])
+            
+            if op == "PLUS":
+                value = value + right
+            elif op == "MINUS":
+                value = value - right
+            
+            i += 2
+        
+        return value
+    
+    i = 0
+    while i < len(tokens):
+        ttype, tval = tokens[i]
+        
+        # int x;
+        if ttype == "INT_KEYWORD":
+            name = tokens[i+1][1]
+            symbols[name] = 0
+            i += 3
+            continue
+        
+        # int x = expr;
+        if ttype == "INT_KEYWORD" and tokens[i+2][0] == "EQUALS":
+            name = tokens[i+1][1]
+            value = eval_expression(i+3)
+            symbols[name] = value
+            i += 5
+            continue
+        
+        # x = expr;
+        if ttype == "IDENTIFIER" and tokens[i+1][0] == "EQUALS":
+            name = tval
+            value = eval_expression(i+2)
+            symbols[name] = value
+            i += 4
+            continue
+        
+        # printf(expr);
+        if ttype == "IDENTIFIER" and tval == "printf":
+            value = eval_expression(i+2)
+            output.append(str(value))
+            
+            # skip until semicolon
+            while tokens[i][0] != "SEMICOLON":
+                i += 1
+            i += 1
+            continue
+        
+        i += 1
+    
+    return "\n".join(output)
+
 
 # ========================
 # 2. GUI Code (Updated)
@@ -223,16 +301,26 @@ def run_compiler():
         output_box.insert(tk.END, "\n❌ Lexical Error Detected. Stopping.\n")
         return
 
-    # Run syntax analyzer
+        # Run syntax analyzer
     ok = syntax_analyzer(tokens)
 
     output_box.insert(tk.END, "\nSyntax Result:\n")
     if ok:
         output_box.insert(tk.END, "Syntax Analysis Successful! ✅\n")
-        messagebox.showinfo("Compiler", "Syntax Analysis Successful!")
+
+        # NEW — evaluate program and print results
+        result = evaluate(tokens)
+        if result:
+            output_box.insert(tk.END, "\nProgram Output:\n")
+            output_box.insert(tk.END, result + "\n")
+        else:
+            output_box.insert(tk.END, "\nProgram Output:\n(No output)\n")
+
+        messagebox.showinfo("Compiler", "Compilation complete.")
     else:
         output_box.insert(tk.END, "Syntax Analysis Failed. ❌\n(See console for details.)\n")
-        messagebox.showerror("Compiler", "Syntax Analysis Failed.\nCheck console for details.")
+        messagebox.showerror("Compiler", "Compiler error.")
+
 
 # Create main window
 root = tk.Tk()
